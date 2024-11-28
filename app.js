@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import userRouter from "./routes/user-routes.js";
+import ContactRouter from "./routes/contact-routes.js";
 import { auth } from "./middleware/auth.js";
 
 //configs
@@ -14,11 +15,11 @@ app.use(cors());
 app.use(express.json());
 
 //routes
-app.use("/user" , userRouter);
-app.get("/protected",auth ,(req ,res) => {
-    return res.status(200).json({user : req.user});
-})
-
+app.use("/user", userRouter);
+app.get("/protected", auth, (req, res) => {
+  return res.status(200).json({ user: req.user });
+});
+app.use("/contact", ContactRouter);
 
 
 

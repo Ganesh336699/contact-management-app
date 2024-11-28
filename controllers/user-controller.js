@@ -6,53 +6,56 @@ import jwt from "jsonwebtoken";
 export const SignUp = async (req, res, next) => {
   const { name, email, password } = req.body;
 
-  //missing fields
+  // Missing fields
   if (!name || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: `Please enter all the required field.` });
+    return res.status(400).json({
+      message: 'Please provide all required fields (name, email, password).',
+    });
   }
 
-  // name validation.
-  if (name.length > 20)
-    return res
-      .status(400)
-      .json({ message: "name can only be less than 25 characters" });
+  // Name validation
+  if (name.length > 20) {
+    return res.status(400).json({
+      message: 'Name can be up to 20 characters long.',
+    });
+  }
 
-  // email validation.
-  const emailReg =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  // Email validation
+  const emailReg = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (!emailReg.test(email)) {
+    return res.status(400).json({ message: 'Invalid email address format.' });
+  }
 
-  if (!emailReg.test(email))
-    return res
-      .status(400)
-      .json({ message: "please enter a valid email address." });
-
-  // validation of password.
-  if (password.length < 8)
-    return res
-      .status(400)
-      .json({ message: "password must be atleast 8 characters long" });
+  // Password validation
+  if (password.length < 8) {
+    return res.status(400).json({
+      message: 'Password must be at least 8 characters long.',
+    });
+  }
 
   try {
-    const ExistingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email });
 
-    if (ExistingUser)
+    if (existingUser) {
       return res.status(400).json({
-        error: `a user with this email [${email}] already exists , please try another one.`,
+        message: `A user with email ${email} already exists. Please use a different email.`,
       });
+    }
 
-    let user;
-    const hashedPassword = await bcrypt.hashSync(password ,12);
-    user = new User({ name, email, password: hashedPassword });
-    user = await user.save();
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = new User({ name, email, password: hashedPassword });
 
-    user._doc.password = undefined;
+    await user.save();
 
-    return res.status(201).json({ ...user._doc });
+    user._doc.password = undefined; // Remove password from response
+
+    return res.status(201).json({ message: 'User created successfully!', user: user._doc });
   } catch (err) {
-    console.log(err);
-    return res.status(500).json({ error: err.message });
+    console.error('Signup Error:', err);
+    return res.status(500).json({
+      message: 'Internal Server Error. Please try again later.',
+      error: err.message,
+    });
   }
 };
 
@@ -77,13 +80,13 @@ export const Login = async (req, res, next) => {
          ExistingUser = await User.findOne({ email });
 
     if (!ExistingUser)
-      return res.status(400).json({ error: "Invalid email or password!" });
+      return res.status(400).json({ message: "Invalid email or password!" });
 
     
     const isPasswordCorrect  = await compareSync(password, ExistingUser.password);
 
     if (!isPasswordCorrect)
-      return res.status(400).json({ error: "Invalid email or password!" });
+      return res.status(400).json({ message: "Invalid email or password!" });
 
     const payload = { _id: ExistingUser._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -94,6 +97,6 @@ export const Login = async (req, res, next) => {
     return res.status(200).json({ token, user });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ message: "An expected error occured . Please try again later." });
   }
 };
